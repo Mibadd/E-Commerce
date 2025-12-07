@@ -1,0 +1,55 @@
+name: Quality Check
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+
+jobs:
+  # Validasi Kode (Linting & Type Checking)
+  validate-code:
+    name: Lint & Type Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20" # Sesuaikan dengan versi stabil terbaru
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm ci # 'ci' lebih aman daripada 'install' untuk CI/CD karena mematuhi package-lock.json
+
+      # Memastikan tidak ada error TypeScript (Logic & Tipe Data)
+      - name: Run Type Check (TypeScript)
+        run: npx tsc --noEmit
+
+      # Memastikan kode sesuai aturan ESLint (Code Style & Best Practices)
+      - name: Run Linter
+        run: npm run lint
+
+  # Cek Formatting (Opsional - Hanya jika Prettier sudah diinstall)
+  check-format:
+    name: Check Formatting
+    runs-on: ubuntu-latest
+    needs: validate-code # Hanya jalan jika validasi kode sukses
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Run Prettier Check
+        # Jika belum install prettier, hapus job ini atau command ini akan error
+        run: npx prettier --check .

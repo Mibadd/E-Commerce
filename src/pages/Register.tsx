@@ -28,7 +28,7 @@ export default function Register() {
     };
 
     return (
-        <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-900 to-blue-600 px-4">
+        <div className="min-h-screen flex items-center justify-center bg-linear-to-br from-indigo-900 to-blue-600 px-4">
             {/* Dekorasi Background */}
             <div className="absolute inset-0 bg-[url('https://placehold.co/1920x1080/1e40af/ffffff?text=.')] opacity-5 pointer-events-none"></div>
 
