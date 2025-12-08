@@ -1,5 +1,31 @@
 @import "tailwindcss";
 
+/* Konfigurasi Tema Aestilo (Tailwind v4 Way) */
+@layer base {
+  :root {
+    /* 1. Primary Colors */
+    --color-soft-cream: #F7F1E8;
+    --color-warm-beige: #E7DCC7;
+    --color-soft-gold: #D8B980;
+    --color-light-taupe: #C6B9A2;
+
+    /* 2. Secondary Colors */
+    --color-mocha-grey: #A39888;
+    --color-rich-charcoal: #3E3A36;
+    --color-white-pearl: #FAFAF8;
+
+    /* 3. Accent Colors */
+    --color-luxury-gold: #BFA166;
+    --color-rose-gold: #D7AFA3;
+    --color-muted-bronze: #A97E57;
+
+    /* Font (Opsional, jika ingin font default berubah) */
+    --font-sans: "Inter", system-ui, sans-serif;
+    --font-serif: "Merriweather", serif;
+  }
+}
+
+/* Global Styles */
 @layer base {
   html {
     scroll-behavior: smooth;
@@ -8,7 +34,13 @@
   }
 
   body {
-    background-color: #f9fafb;
-    color: #1f2937;
+    /* Gunakan warna yang baru kita daftarkan di atas */
+    background-color: var(--color-soft-cream);
+    color: var(--color-rich-charcoal);
+  }
+
+  ::selection {
+    background-color: var(--color-soft-gold);
+    color: white;
   }
 }
