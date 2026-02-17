@@ -39,9 +39,13 @@ export default function OrderSuccess() {
                         Kembali Belanja
                     </Link>
 
-                    <button className="text-sm text-light-taupe hover:text-rich-charcoal underline transition">
+                    {/* UPDATE: Menggunakan Link ke /orders */}
+                    <Link
+                        to="/orders"
+                        className="block w-full text-sm text-light-taupe hover:text-rich-charcoal underline transition py-2"
+                    >
                         Cek Status Pesanan
-                    </button>
+                    </Link>
                 </div>
             </motion.div>
         </div>

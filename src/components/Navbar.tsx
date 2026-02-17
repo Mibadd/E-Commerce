@@ -62,6 +62,9 @@ export default function Navbar() {
                                 <span className="text-sm font-medium text-mocha-grey hidden md:inline-block">
                                     Halo, {user.email?.split('@')[0]}
                                 </span>
+                                <Link to="/orders" className="text-xs font-bold uppercase tracking-wider text-rich-charcoal hover:text-luxury-gold transition">
+                                    My Orders
+                                </Link>
                                 <button
                                     onClick={handleLogout}
                                     className="border border-rich-charcoal text-rich-charcoal px-5 py-2 rounded-full text-xs font-bold uppercase tracking-wider hover:bg-rich-charcoal hover:text-soft-cream transition duration-300"
