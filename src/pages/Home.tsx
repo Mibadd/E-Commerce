@@ -4,32 +4,36 @@ import { db } from "../services/firebase";
 import type { Product } from "../types/product";
 import { seedDatabase } from "../services/seeder";
 import { useCart } from "../context/CartContext";
-import InteractiveClay from "../components/InteractiveClay";
+import { useAuth } from "../context/AuthContext"; // Auth untuk Admin
 import InfiniteMarquee from "../components/InfiniteMarquee";
-import { motion, useMotionValue, useTransform } from "framer-motion";
+import { motion, useScroll, useTransform, useMotionValue, useSpring } from "framer-motion";
 
 export default function Home() {
     const [products, setProducts] = useState<Product[]>([]);
     const [loading, setLoading] = useState(true);
-    const [errorMsg, setErrorMsg] = useState("");
-
     const { addToCart } = useCart();
+    const { user } = useAuth();
 
-    // --- LOGIC 3D MOUSE EFFECT ---
+    // --- PARALLAX & MOUSE EFFECT ---
+    const { scrollY } = useScroll();
+    const yHero = useTransform(scrollY, [0, 500], [0, 200]); // Efek Parallax text
+
     const x = useMotionValue(0);
     const y = useMotionValue(0);
-    const rotateX = useTransform(y, [0, 500], [10, -10]);
-    const rotateY = useTransform(x, [0, 500], [-10, 10]);
+    const mouseX = useSpring(x, { stiffness: 50, damping: 20 });
+    const mouseY = useSpring(y, { stiffness: 50, damping: 20 });
 
-    function handleMouse(event: React.MouseEvent<HTMLDivElement>) {
-        const rect = event.currentTarget.getBoundingClientRect();
-        x.set(event.clientX - rect.left);
-        y.set(event.clientY - rect.top);
+    function handleMouseMove(event: React.MouseEvent<HTMLDivElement>) {
+        const { clientX, clientY, currentTarget } = event;
+        const { left, top, width, height } = currentTarget.getBoundingClientRect();
+        const centerX = left + width / 2;
+        const centerY = top + height / 2;
+        x.set((clientX - centerX) / 25);
+        y.set((clientY - centerY) / 25);
     }
 
     const fetchProducts = async () => {
         setLoading(true);
-        setErrorMsg("");
         try {
             const querySnapshot = await getDocs(collection(db, "products"));
             const productsData = querySnapshot.docs.map((doc) => ({
@@ -37,10 +41,8 @@ export default function Home() {
                 ...doc.data(),
             })) as Product[];
             setProducts(productsData);
-        } catch (error: unknown) {
-            console.error("❌ Error fetch:", error);
-            if (error instanceof Error) setErrorMsg(error.message);
-            else setErrorMsg("Gagal mengambil data");
+        } catch (error) {
+            console.error("Error:", error);
         } finally {
             setLoading(false);
         }
@@ -51,6 +53,7 @@ export default function Home() {
     }, []);
 
     const handleSeed = async () => {
+        if (!user) return;
         await seedDatabase();
         window.location.reload();
     };
@@ -58,247 +61,245 @@ export default function Home() {
     if (loading)
         return (
             <div className="min-h-screen flex flex-col items-center justify-center bg-soft-cream">
-                <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-luxury-gold"></div>
-                <p className="mt-4 text-rich-charcoal font-medium animate-pulse">
-                    Menyiapkan butik...
-                </p>
+                <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-luxury-gold"></div>
             </div>
         );
 
     return (
-        <div className="bg-soft-cream min-h-screen overflow-x-hidden">
+        <div className="bg-soft-cream min-h-screen overflow-x-hidden selection:bg-luxury-gold selection:text-white">
 
-            {/* --- HERO SECTION --- */}
-            <div
-                className="relative bg-[radial-gradient(ellipse_at_top_right,var(--tw-gradient-stops))] from-[#3E3A36] via-[#252220] to-[#12100e] text-soft-cream overflow-hidden mb-0 shadow-2xl perspective-1000"
-                onMouseMove={handleMouse}
-                onMouseLeave={() => { x.set(250); y.set(250); }}
+            {/* --- 1. HERO SECTION (IMPROVED) --- */}
+            <section
+                className="relative min-h-screen flex items-center justify-center bg-rich-charcoal overflow-hidden pt-20"
+                onMouseMove={handleMouseMove}
             >
-                <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-5 mix-blend-overlay"></div>
-                <div className="absolute top-[-20%] right-[-10%] w-[800px] h-[800px] bg-soft-gold/10 rounded-full blur-[120px] pointer-events-none"></div>
+                {/* Background Gradients */}
+                <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_50%_50%,rgba(62,58,54,1)_0%,rgba(18,16,14,1)_100%)]"></div>
+                <div className="absolute top-[-20%] right-[-10%] w-[800px] h-[800px] bg-luxury-gold/5 rounded-full blur-[120px] pointer-events-none"></div>
 
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 relative z-10 flex flex-col-reverse md:flex-row items-center justify-between min-h-[650px]">
-                    <div className="md:w-1/2 mt-12 md:mt-0 text-center md:text-left z-20">
+                <div className="max-w-7xl mx-auto px-6 grid grid-cols-1 lg:grid-cols-2 gap-12 items-center relative z-10 w-full">
+
+                    {/* Text Content */}
+                    <motion.div style={{ y: yHero }} className="text-center lg:text-left">
                         <motion.div
-                            initial={{ opacity: 0, x: -50 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            transition={{ duration: 0.8, ease: "easeOut" }}
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.8 }}
                         >
-                            <span className="inline-block py-1.5 px-5 rounded-full bg-luxury-gold text-rich-charcoal text-xs font-bold tracking-widest uppercase mb-6 shadow-md">
-                                New Arrivals 2024
+                            <span className="inline-block py-2 px-6 rounded-full border border-white/10 bg-white/5 text-soft-gold text-xs font-bold tracking-[0.2em] uppercase mb-6 backdrop-blur-md">
+                                The 2026 Collection
                             </span>
-                            <h1 className="text-5xl md:text-7xl font-serif font-extrabold mb-6 leading-tight text-white-pearl drop-shadow-xl">
-                                Luxury Essentials <br />
-                                <span className="text-soft-gold italic font-light">
-                                    For Modern Life.
-                                </span>
+                            <h1 className="text-6xl md:text-8xl font-serif font-medium text-white-pearl leading-[1.1] mb-8">
+                                Redefine <br />
+                                <span className="text-transparent bg-clip-text bg-linear-to-r from-luxury-gold to-white italic">Elegance.</span>
                             </h1>
-                            <p className="text-lg text-light-taupe mb-10 max-w-lg mx-auto md:mx-0 leading-relaxed font-normal">
-                                Tas kulit premium dan aksesoris pintar yang dirancang untuk meningkatkan gaya hidup profesional Anda.
+                            <p className="text-lg text-light-taupe/80 mb-10 max-w-lg mx-auto lg:mx-0 font-light leading-relaxed">
+                                Temukan harmoni antara keindahan klasik dan fungsionalitas modern. Dikurasi khusus untuk pribadi yang istimewa.
                             </p>
-                            <div className="flex flex-col sm:flex-row gap-5 justify-center md:justify-start">
+
+                            <div className="flex flex-col sm:flex-row gap-5 justify-center lg:justify-start">
                                 <motion.button
                                     whileHover={{ scale: 1.05 }}
                                     whileTap={{ scale: 0.95 }}
                                     onClick={() => document.getElementById("catalog")?.scrollIntoView({ behavior: "smooth" })}
-                                    className="bg-linear-to-r from-luxury-gold to-soft-gold text-rich-charcoal px-10 py-4 rounded-full font-bold text-sm uppercase tracking-wide shadow-[0_0_25px_rgba(191,161,102,0.5)] hover:shadow-[0_0_35px_rgba(191,161,102,0.7)] transition-all border border-transparent"
+                                    className="bg-white-pearl text-rich-charcoal px-10 py-4 rounded-full font-bold text-sm uppercase tracking-widest shadow-[0_0_40px_-10px_rgba(255,255,255,0.3)] hover:shadow-[0_0_60px_-15px_rgba(255,255,255,0.5)] transition-all"
                                 >
-                                    Shop Collection
-                                </motion.button>
-                                <motion.button
-                                    whileHover={{ scale: 1.05, backgroundColor: "rgba(255,255,255,0.1)" }}
-                                    whileTap={{ scale: 0.95 }}
-                                    onClick={() => document.getElementById("interactive-zone")?.scrollIntoView({ behavior: "smooth" })}
-                                    className="border-2 border-light-taupe/50 text-white-pearl px-10 py-4 rounded-full font-bold text-sm uppercase tracking-wide transition backdrop-blur-sm"
-                                >
-                                    Experience 3D ✨
+                                    Shop Now
                                 </motion.button>
                             </div>
                         </motion.div>
-                    </div>
+                    </motion.div>
 
-                    <div className="md:w-1/2 flex justify-center relative h-full w-full items-center">
-                        <motion.div
-                            style={{ rotateX, rotateY, z: 100 }}
-                            className="relative z-10 w-[320px] md:w-[420px] cursor-pointer"
-                        >
-                            <div className="relative group">
-                                <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[90%] h-[90%] bg-soft-gold/20 rounded-full blur-3xl group-hover:bg-soft-gold/30 transition-all duration-500"></div>
-                                <motion.img
-                                    src="https://placehold.co/600x600/transparent/white?text=Signature+Tote"
-                                    alt="Aestilo Signature Bag"
-                                    className="w-full h-auto drop-shadow-2xl transform transition-transform duration-500"
-                                    animate={{ y: [0, -20, 0] }}
-                                    transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
-                                />
-                            </div>
-                            <motion.div
-                                className="absolute -bottom-12 -right-4 bg-white/10 backdrop-blur-xl border border-white/20 p-5 rounded-2xl shadow-2xl flex flex-col gap-3 w-64"
-                                animate={{ y: [0, 15, 0] }}
-                                transition={{ duration: 7, repeat: Infinity, ease: "easeInOut", delay: 1 }}
-                            >
-                                <div className="flex justify-between items-start">
-                                    <div>
-                                        <p className="text-soft-gold text-xs font-bold uppercase tracking-wider">Best Seller</p>
-                                        <h3 className="text-white font-serif text-lg leading-tight">Signature Tote Leather</h3>
-                                    </div>
-                                    <span className="text-white font-bold">4.9 ★</span>
-                                </div>
-                                <div className="flex justify-between items-center mt-2">
-                                    <span className="text-white-pearl font-bold text-lg">Rp 1.2jt</span>
-                                    <div className="w-8 h-8 rounded-full bg-luxury-gold flex items-center justify-center text-rich-charcoal shadow-lg">
-                                        +
-                                    </div>
-                                </div>
-                            </motion.div>
-                            <motion.div
-                                className="absolute top-0 -left-8 bg-rich-charcoal/80 backdrop-blur-md border border-light-taupe/30 px-4 py-2 rounded-lg shadow-xl"
-                                animate={{ x: [0, 10, 0] }}
-                                transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
-                            >
-                                <p className="text-soft-cream text-xs font-medium">✨ Premium Leather</p>
-                            </motion.div>
-                        </motion.div>
-                    </div>
-                </div>
-            </div>
-
-            <InfiniteMarquee />
-
-            <div id="interactive-zone" className="mt-12">
-                <InteractiveClay />
-            </div>
-
-            {/* --- KATALOG SECTION (HUMAN FRIENDLY & INTERACTIVE CARD) --- */}
-            <div id="catalog" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-20 mt-16">
-
-                {/* Header & Error (Sama) */}
-                {errorMsg && (
-                    <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-8 rounded shadow flex justify-between items-center">
-                        <div>
-                            <p className="font-bold">Gagal Memuat Data</p>
-                            <p className="text-sm">{errorMsg}</p>
-                        </div>
-                        <button onClick={fetchProducts} className="text-sm underline hover:text-red-900">Coba Lagi</button>
-                    </div>
-                )}
-
-                <div className="flex flex-col sm:flex-row justify-between items-end mb-8 border-b border-light-taupe/50 pb-4 gap-4">
-                    <div>
-                        <h2 className="text-3xl font-serif font-bold text-rich-charcoal">
-                            Katalog Produk
-                        </h2>
-                        <p className="text-mocha-grey mt-1">
-                            Koleksi terkurasi untuk gaya hidup Anda
-                        </p>
-                    </div>
-                    <button
-                        onClick={fetchProducts}
-                        className="text-rich-charcoal hover:text-soft-gold font-medium flex items-center gap-1 transition bg-warm-beige/30 px-4 py-2 rounded-lg hover:bg-warm-beige"
+                    {/* 3D Image */}
+                    <motion.div
+                        style={{ x: mouseX, y: mouseY, rotateX: mouseY, rotateY: mouseX }}
+                        className="relative hidden lg:block"
                     >
-                        🔄 Refresh Data
-                    </button>
+                        <div className="relative z-10 w-[500px] mx-auto">
+                            {/* Main Hero Image */}
+                            <img
+                                src="https://placehold.co/600x800/png?text=Luxury+Bag"
+                                alt="Hero Product"
+                                className="w-full h-auto drop-shadow-2xl object-contain transform hover:scale-105 transition duration-700"
+                            />
+
+                            {/* Floating Badge 1 */}
+                            <motion.div
+                                animate={{ y: [0, -20, 0] }}
+                                transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+                                className="absolute top-20 -left-10 bg-white/10 backdrop-blur-xl p-4 rounded-2xl border border-white/20 shadow-2xl"
+                            >
+                                <p className="text-white text-xs font-bold">⭐ Premium Quality</p>
+                            </motion.div>
+
+                            {/* Floating Badge 2 */}
+                            <motion.div
+                                animate={{ y: [0, 20, 0] }}
+                                transition={{ duration: 5, repeat: Infinity, ease: "easeInOut", delay: 1 }}
+                                className="absolute bottom-20 -right-5 bg-luxury-gold text-rich-charcoal p-5 rounded-full shadow-2xl flex flex-col items-center justify-center w-24 h-24"
+                            >
+                                <span className="text-xs font-bold uppercase">New</span>
+                                <span className="text-xl font-bold">2026</span>
+                            </motion.div>
+                        </div>
+                    </motion.div>
+                </div>
+
+                {/* Scroll Indicator */}
+                <motion.div
+                    animate={{ y: [0, 10, 0] }}
+                    transition={{ duration: 2, repeat: Infinity }}
+                    className="absolute bottom-10 left-1/2 -translate-x-1/2 text-white/30 flex flex-col items-center gap-2"
+                >
+                    <span className="text-[10px] uppercase tracking-widest">Scroll</span>
+                    <div className="w-px h-12 bg-linear-to-b from-white/0 via-white/50 to-white/0"></div>
+                </motion.div>
+            </section>
+
+            {/* --- 2. MARQUEE & CLAY (Visual Break) --- */}
+            <div className="py-10 bg-soft-cream">
+                <InfiniteMarquee />
+            </div>
+
+            {/* --- 3. SERVICE GUARANTEE (Trust Signals) --- */}
+            <section className="py-20 px-6 max-w-7xl mx-auto">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                    {[
+                        { icon: "💎", title: "100% Authentic", desc: "Jaminan keaslian produk atau uang kembali 2x lipat." },
+                        { icon: "🚀", title: "Express Shipping", desc: "Pengiriman cepat dan aman ke seluruh Indonesia." },
+                        { icon: "🛡️", title: "Secure Payment", desc: "Transaksi aman dengan enkripsi tingkat lanjut." }
+                    ].map((item, idx) => (
+                        <motion.div
+                            key={idx}
+                            whileHover={{ y: -10 }}
+                            className="bg-white-pearl p-8 rounded-3xl border border-warm-beige/50 text-center hover:shadow-xl transition-all duration-300"
+                        >
+                            <div className="text-4xl mb-4">{item.icon}</div>
+                            <h3 className="text-xl font-serif font-bold text-rich-charcoal mb-2">{item.title}</h3>
+                            <p className="text-sm text-mocha-grey leading-relaxed">{item.desc}</p>
+                        </motion.div>
+                    ))}
+                </div>
+            </section>
+
+            {/* --- 4. CATALOG SECTION (Clean & Minimal) --- */}
+            <section id="catalog" className="max-w-7xl mx-auto px-6 pb-32">
+                <div className="flex flex-col md:flex-row justify-between items-end mb-16 gap-6">
+                    <div>
+                        <h2 className="text-5xl font-serif font-bold text-rich-charcoal mb-4">
+                            Curated Collection
+                        </h2>
+                        <div className="h-1 w-24 bg-luxury-gold"></div>
+                    </div>
+
+                    {/* Filter / Sort could go here */}
+                    <div className="flex gap-2">
+                        <button onClick={fetchProducts} className="px-6 py-3 rounded-full border border-rich-charcoal/10 hover:bg-rich-charcoal hover:text-white transition text-sm font-bold uppercase tracking-wider">
+                            Refresh Collection
+                        </button>
+                    </div>
                 </div>
 
                 {products.length === 0 ? (
-                    <div className="text-center py-20 bg-white-pearl rounded-2xl shadow-sm border border-dashed border-light-taupe">
-                        <div className="text-6xl mb-4">📦</div>
-                        <h3 className="text-xl font-bold text-rich-charcoal mb-2">
-                            Produk Belum Tersedia
-                        </h3>
-                        <button
-                            onClick={handleSeed}
-                            className="bg-rich-charcoal text-white-pearl px-6 py-2.5 rounded-lg hover:bg-muted-bronze font-bold shadow-md hover:shadow-lg transition transform hover:-translate-y-1 mt-4"
-                        >
-                            🌱 Generate Data Dummy
-                        </button>
+                    // --- EMPTY STATE ---
+                    <div className="text-center py-24 bg-white-pearl rounded-[3rem] border border-dashed border-light-taupe relative overflow-hidden">
+                        <div className="absolute inset-0 opacity-10 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')]"></div>
+                        <div className="relative z-10">
+                            <div className="text-7xl mb-6 grayscale opacity-50">📦</div>
+                            <h3 className="text-2xl font-bold text-rich-charcoal mb-2">Katalog Sedang Disiapkan</h3>
+                            <p className="text-mocha-grey mb-8">Nantikan koleksi terbaru kami segera.</p>
+
+                            {/* ADMIN ONLY BUTTON */}
+                            {user && (
+                                <button
+                                    onClick={handleSeed}
+                                    className="bg-rich-charcoal text-white px-8 py-3 rounded-xl hover:bg-luxury-gold font-bold shadow-lg transition-all"
+                                >
+                                    🌱 Generate Dummy Data
+                                </button>
+                            )}
+                        </div>
                     </div>
                 ) : (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8">
+                    // --- PRODUCT GRID ---
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-8 gap-y-12">
                         {products.map((product, index) => (
                             <motion.div
                                 key={product.id}
-                                initial={{ opacity: 0, y: 30 }}
+                                initial={{ opacity: 0, y: 50 }}
                                 whileInView={{ opacity: 1, y: 0 }}
-                                transition={{ duration: 0.4, delay: index * 0.05 }}
+                                transition={{ duration: 0.5, delay: index * 0.1 }}
                                 viewport={{ once: true }}
-                                className="group relative bg-white-pearl rounded-2xl border border-light-taupe/30 overflow-hidden hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 flex flex-col"
+                                className="group cursor-pointer"
                             >
-                                {/* --- IMAGE AREA --- */}
-                                <div className="relative h-72 overflow-hidden bg-warm-beige/20">
-
-                                    {/* Badge Category (Kiri Atas) */}
-                                    <span className="absolute top-3 left-3 z-10 bg-white/90 backdrop-blur text-rich-charcoal text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-wider shadow-sm">
-                                        {product.category || "General"}
+                                {/* Image Container */}
+                                <div className="relative aspect-4/5 bg-warm-beige/20 rounded-2xl overflow-hidden mb-6">
+                                    <span className="absolute top-4 left-4 z-20 bg-white/90 backdrop-blur px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-rich-charcoal rounded-md">
+                                        {product.category || "Exclusive"}
                                     </span>
-
-                                    {/* Wishlist Button (Kanan Atas - Visual Only) */}
-                                    <button className="absolute top-3 right-3 z-10 p-2 rounded-full bg-white/80 hover:bg-white text-gray-400 hover:text-red-500 transition shadow-sm backdrop-blur-sm">
-                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-                                        </svg>
-                                    </button>
 
                                     <img
                                         src={product.imageUrl}
                                         alt={product.name}
-                                        className="w-full h-full object-cover transform group-hover:scale-105 transition duration-700 ease-out"
+                                        className="w-full h-full object-cover transform group-hover:scale-110 transition duration-1000 ease-out"
                                         onError={(e) => {
-                                            (e.target as HTMLImageElement).src =
-                                                "https://placehold.co/400?text=No+Image";
+                                            (e.target as HTMLImageElement).src = "https://placehold.co/400x500?text=Aestilo";
                                         }}
                                     />
 
-                                    {/* Quick Action Overlay (Muncul saat Hover) */}
-                                    <div className="absolute inset-x-0 bottom-0 p-4 translate-y-full group-hover:translate-y-0 transition-transform duration-300 bg-linear-to-t from-black/60 to-transparent flex justify-center">
-                                        <span className="text-white text-xs font-medium tracking-wide opacity-0 group-hover:opacity-100 transition delay-100">
-                                            Click to view details
-                                        </span>
+                                    {/* Overlay Action */}
+                                    <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition duration-300 flex items-center justify-center">
+                                        <button
+                                            onClick={(e) => { e.stopPropagation(); addToCart(product); }}
+                                            className="bg-white text-rich-charcoal px-8 py-3 rounded-full font-bold uppercase text-xs tracking-widest transform translate-y-4 group-hover:translate-y-0 transition duration-300 hover:bg-luxury-gold hover:text-white shadow-xl"
+                                        >
+                                            Add to Cart
+                                        </button>
                                     </div>
                                 </div>
 
-                                {/* --- CONTENT AREA --- */}
-                                <div className="p-5 flex flex-col grow">
-                                    <div className="flex justify-between items-start mb-2">
-                                        <h3
-                                            className="text-lg font-serif font-bold text-rich-charcoal leading-snug group-hover:text-luxury-gold transition line-clamp-1"
-                                            title={product.name}
-                                        >
-                                            {product.name}
-                                        </h3>
-                                    </div>
-
-                                    <p className="text-mocha-grey text-xs mb-4 line-clamp-2 leading-relaxed">
-                                        {product.description}
-                                    </p>
-
-                                    <div className="mt-auto pt-4 border-t border-light-taupe/30 flex items-center justify-between">
-                                        <div className="flex flex-col">
-                                            <span className="text-[10px] text-light-taupe uppercase tracking-widest font-bold">Price</span>
-                                            <span className="text-lg font-bold text-rich-charcoal">
-                                                Rp {product.price?.toLocaleString("id-ID")}
-                                            </span>
-                                        </div>
-
-                                        {/* Tombol Add to Cart yang lebih interaktif */}
-                                        <motion.button
-                                            whileHover={{ scale: 1.05 }}
-                                            whileTap={{ scale: 0.95 }}
-                                            onClick={() => addToCart(product)}
-                                            className="flex items-center gap-2 bg-rich-charcoal text-soft-cream px-4 py-2.5 rounded-full hover:bg-luxury-gold hover:text-rich-charcoal shadow-lg transition-all duration-300 group/btn"
-                                        >
-                                            <span className="text-xs font-bold uppercase tracking-wide">Add</span>
-                                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 transition-transform group-hover/btn:translate-x-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
-                                            </svg>
-                                        </motion.button>
+                                {/* Info */}
+                                <div>
+                                    <h3 className="text-lg font-serif font-bold text-rich-charcoal group-hover:text-luxury-gold transition-colors">
+                                        {product.name}
+                                    </h3>
+                                    <div className="flex justify-between items-center mt-2 border-t border-rich-charcoal/5 pt-3">
+                                        <p className="text-sm text-mocha-grey line-clamp-1">{product.description}</p>
+                                        <span className="text-lg font-bold text-rich-charcoal">
+                                            Rp {product.price?.toLocaleString("id-ID")}
+                                        </span>
                                     </div>
                                 </div>
                             </motion.div>
                         ))}
                     </div>
                 )}
+            </section>
+
+            {/* --- 5. INTERACTIVE FOOTER TEASER --- */}
+            <div className="bg-rich-charcoal py-20 relative overflow-hidden">
+                <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-5"></div>
+                <div className="max-w-4xl mx-auto px-6 text-center relative z-10">
+                    <h2 className="text-4xl md:text-5xl font-serif text-white-pearl mb-6">
+                        Experience the Art of Style
+                    </h2>
+                    <p className="text-light-taupe mb-10 max-w-xl mx-auto">
+                        Bergabunglah dengan newsletter kami untuk mendapatkan akses eksklusif ke koleksi terbatas dan penawaran khusus.
+                    </p>
+
+                    <div className="flex flex-col sm:flex-row gap-4 justify-center max-w-md mx-auto">
+                        <input
+                            type="email"
+                            placeholder="Email Address"
+                            className="px-6 py-4 rounded-full bg-white/10 border border-white/20 text-white placeholder-white/50 focus:outline-none focus:border-luxury-gold flex-1"
+                        />
+                        <button className="px-8 py-4 rounded-full bg-luxury-gold text-rich-charcoal font-bold uppercase tracking-widest hover:bg-white transition">
+                            Subscribe
+                        </button>
+                    </div>
+                </div>
             </div>
+
         </div>
     );
 }

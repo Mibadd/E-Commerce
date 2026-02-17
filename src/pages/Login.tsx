@@ -81,10 +81,11 @@ export default function Login() {
                         />
                     </div>
 
+                    {/* TOMBOL UTAMA DIPERBAIKI: Solid Gold, Teks Gelap, Shadow */}
                     <button
                         type="submit"
                         disabled={loading}
-                        className="w-full bg-rich-charcoal text-white font-bold py-4 rounded-lg hover:bg-luxury-gold hover:text-rich-charcoal hover:shadow-lg transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed mt-2 tracking-wide uppercase text-sm"
+                        className="w-full bg-luxury-gold text-rich-charcoal font-bold py-4 rounded-lg hover:bg-soft-gold hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed mt-4 shadow-md tracking-wide uppercase text-sm"
                     >
                         {loading ? 'Authenticating...' : 'Sign In'}
                     </button>
